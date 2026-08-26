@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
           expense_type=excluded.expense_type, company=excluded.company
       `);
       runTransaction(db, () => {
+        clearDemoDataForRealUpload(db, rows.length > 0);
         for (const r of rows) {
           insert.run(
             r.year, r.month, r.employee_no, r.employee_name, r.expense_type,
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
         ON CONFLICT(employee_name, year, month) DO UPDATE SET salary=excluded.salary
       `);
       runTransaction(db, () => {
+        clearDemoDataForRealUpload(db, rows.length > 0);
         for (const r of rows) insert.run(r.employee_name, r.year, r.month, r.salary);
       });
       return NextResponse.json({ inserted: rows.length, errors });
@@ -67,6 +69,7 @@ export async function POST(req: NextRequest) {
           status=excluded.status
       `);
       runTransaction(db, () => {
+        clearDemoDataForRealUpload(db, rows.length > 0);
         for (const r of rows) {
           insert.run(r.ref_code, r.project_name, r.price, r.sales_month, r.category, r.status);
         }
@@ -79,4 +82,17 @@ export async function POST(req: NextRequest) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+function clearDemoDataForRealUpload(db: ReturnType<typeof getDb>, hasRows: boolean) {
+  if (!hasRows) return;
+  const dataSource = db
+    .prepare("SELECT value FROM settings WHERE key='data_source'")
+    .get() as { value?: string } | undefined;
+  if (dataSource?.value !== "demo") return;
+
+  db.prepare("DELETE FROM timesheet_entries").run();
+  db.prepare("DELETE FROM salary_entries").run();
+  db.prepare("DELETE FROM projects").run();
+  db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('data_source', 'real')").run();
 }
