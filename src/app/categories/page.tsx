@@ -28,7 +28,7 @@ export default function CategoriesPage() {
     fetch(`/api/categories?${params}`).then((r) => r.json()).then(setData);
   }, [year, month]);
 
-  const rows = data?.rows ?? [];
+  const rows = (data?.rows ?? []).slice().sort((a, b) => b.hours - a.hours);
   const totalHours = rows.reduce((s, r) => s + r.hours, 0);
 
   const columns: Column<Row>[] = [
@@ -60,26 +60,72 @@ export default function CategoriesPage() {
 
       {rows.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
-              <Pie
-                data={rows}
-                dataKey="hours"
-                nameKey="category"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                labelLine={false}
-              >
-                {rows.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(v: number) => fmtHours(v)} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="flex gap-6 items-stretch">
+            <div className="flex-1" style={{ minWidth: 320, height: 320 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={rows}
+                    dataKey="hours"
+                    nameKey="category"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={110}
+                    innerRadius={60}
+                    paddingAngle={2}
+                    labelLine={false}
+                    // label={({ index }) => {
+                    //   const r = rows[index];
+                    //   const pct = totalHours > 0 ? ((r.hours / totalHours) * 100).toFixed(0) + "%" : "";
+                    //   return `${r.category} ${pct}`;
+                    // }}
+                  >
+                    {rows.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+
+                  <Tooltip
+                    formatter={(value: number, name: string, props: any) => {
+                      const pct = totalHours > 0 ? ` (${((value/totalHours)*100).toFixed(1)}%)` : "";
+                      return [fmtHours(value), `${name}${pct}`];
+                    }}
+                  />
+
+                  <Legend
+                    layout="vertical"
+                    align="right"
+                    verticalAlign="middle"
+                    wrapperStyle={{ paddingLeft: 12 }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="w-64 flex-shrink-0">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Details</h3>
+              <ul className="space-y-2">
+                {rows.map((r, i) => {
+                  const pct = totalHours > 0 ? (r.hours / totalHours * 100).toFixed(1) : "0.0";
+                  return (
+                    <li key={r.category} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="inline-block w-3 h-3 rounded-sm" style={{ background: COLORS[i % COLORS.length] }} />
+                        <div>
+                          <div className="text-sm font-medium text-gray-800">{r.category}</div>
+                          <div className="text-xs text-gray-500">{r.people} people</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-900">{fmtHours(r.hours)}</div>
+                        <div className="text-xs text-gray-500">{pct}%</div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 
