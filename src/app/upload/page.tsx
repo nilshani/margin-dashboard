@@ -8,10 +8,16 @@ interface UploadResult { inserted: number; errors: string[]; }
 export default function UploadPage() {
   const [results, setResults] = useState<Record<string, UploadResult>>({});
   const [salaryYear, setSalaryYear] = useState("");
+  const [demoMessage, setDemoMessage] = useState("");
 
   const handleDone = (type: string) => (result: UploadResult) => {
     setResults((prev) => ({ ...prev, [type]: result }));
   };
+
+  async function loadDemoData() {
+    const response = await fetch("/api/demo", { method: "POST" });
+    if (response.ok) setDemoMessage("Demo data loaded. Open the Dashboard to view it.");
+  }
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl">
@@ -21,6 +27,17 @@ export default function UploadPage() {
           Upload all three files. Re-uploading a corrected file will update existing rows without duplicating data.
         </p>
       </div>
+
+      <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-sky-900">Demo dataset</p>
+          <p className="text-xs text-sky-700 mt-1">Load a populated 2025 example without preparing spreadsheets.</p>
+        </div>
+        <button onClick={loadDemoData} className="shrink-0 bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium px-3 py-2 rounded-lg">
+          Load demo data
+        </button>
+      </div>
+      {demoMessage && <p className="text-sm text-emerald-700">{demoMessage}</p>}
 
       <div className="grid gap-4">
         <UploadZone type="timesheet" label="Timesheet (hours per person per task)" onDone={handleDone("timesheet")} />
