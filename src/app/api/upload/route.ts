@@ -8,6 +8,8 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const type = formData.get("type") as string | null;
+  const salaryYearValue = formData.get("salaryYear");
+  const salaryYear = salaryYearValue ? parseInt(String(salaryYearValue), 10) : undefined;
 
   if (!file || !type) {
     return NextResponse.json({ error: "Missing file or type" }, { status: 400 });
@@ -42,7 +44,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (type === "salary") {
-      const { rows, errors } = parseSalary(buffer);
+      const { rows, errors } = parseSalary(buffer, salaryYear);
       const insert = db.prepare(`
         INSERT INTO salary_entries (employee_name, year, month, salary)
         VALUES (?,?,?,?)

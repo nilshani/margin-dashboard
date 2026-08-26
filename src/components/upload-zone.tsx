@@ -6,10 +6,11 @@ import { cn } from "@/lib/utils";
 interface UploadZoneProps {
   type: "timesheet" | "salary" | "projects";
   label: string;
+  year?: number;
   onDone: (result: { inserted: number; errors: string[] }) => void;
 }
 
-export function UploadZone({ type, label, onDone }: UploadZoneProps) {
+export function UploadZone({ type, label, year, onDone }: UploadZoneProps) {
   const [state, setState] = useState<"idle" | "uploading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -21,6 +22,7 @@ export function UploadZone({ type, label, onDone }: UploadZoneProps) {
     const fd = new FormData();
     fd.append("file", file);
     fd.append("type", type);
+    if (year) fd.append("salaryYear", String(year));
     try {
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json();

@@ -7,6 +7,7 @@ interface UploadResult { inserted: number; errors: string[]; }
 
 export default function UploadPage() {
   const [results, setResults] = useState<Record<string, UploadResult>>({});
+  const [salaryYear, setSalaryYear] = useState("");
 
   const handleDone = (type: string) => (result: UploadResult) => {
     setResults((prev) => ({ ...prev, [type]: result }));
@@ -23,7 +24,19 @@ export default function UploadPage() {
 
       <div className="grid gap-4">
         <UploadZone type="timesheet" label="Timesheet (hours per person per task)" onDone={handleDone("timesheet")} />
-        <UploadZone type="salary" label="Salary Overview (one row per person, months as columns)" onDone={handleDone("salary")} />
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">Salary year for month-only headers</label>
+          <input
+            type="number"
+            min="2000"
+            max="2100"
+            placeholder="e.g. 2025"
+            value={salaryYear}
+            onChange={(e) => setSalaryYear(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+          <UploadZone type="salary" year={salaryYear ? Number(salaryYear) : undefined} label="Salary Overview (one row per person, months as columns)" onDone={handleDone("salary")} />
+        </div>
         <UploadZone type="projects" label="Project Prices (ref code, name, price)" onDone={handleDone("projects")} />
       </div>
 

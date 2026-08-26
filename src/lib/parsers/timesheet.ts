@@ -15,7 +15,7 @@ const MONTH_MAP: Record<string, number> = {
   december: 12, dec: 12,
 };
 
-export function parseMonthYear(raw: string): { month: number; year: number } | null {
+export function parseMonthYear(raw: string, fallbackYear = new Date().getFullYear()): { month: number; year: number } | null {
   if (!raw) return null;
   const cleaned = raw.toString().replace(/[''`]/g, "").toLowerCase().trim();
 
@@ -31,7 +31,7 @@ export function parseMonthYear(raw: string): { month: number; year: number } | n
 
   // Just month name — caller should supply year from context
   const monthOnly = MONTH_MAP[cleaned];
-  if (monthOnly) return { month: monthOnly, year: new Date().getFullYear() };
+  if (monthOnly) return { month: monthOnly, year: fallbackYear };
 
   return null;
 }

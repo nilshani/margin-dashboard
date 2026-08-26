@@ -214,7 +214,10 @@ export function getDashboardMetrics(filter: PeriodFilter): DashboardMetrics {
       missingSalary.add(e.employee_name);
     }
     const indirectRate = indirectRateCache.get(key) ?? 0;
-    totalCost += e.hours * ((directRate ?? 0) + indirectRate);
+    totalCost += e.hours * (directRate ?? 0);
+    if (billableCategories.includes(e.category)) {
+      totalCost += e.hours * indirectRate;
+    }
   }
 
   // Revenue = sum of prices for projects that have hours in this period
@@ -258,6 +261,8 @@ export function getDashboardMetrics(filter: PeriodFilter): DashboardMetrics {
 
 export function getProjectDetail(refCode: string) {
   const db = getDb();
+  const billableCategories = getBillableCategories();
+  const billablePlaceholders = billableCategories.map(() => "?").join(",");
 
   const project = db
     .prepare("SELECT * FROM projects WHERE ref_code=?")
@@ -276,10 +281,10 @@ export function getProjectDetail(refCode: string) {
     .prepare(
       `SELECT t.employee_name, t.department, t.designation, t.year, t.month, SUM(t.hours) as hours
        FROM timesheet_entries t
-       WHERE t.ref_code=?
+       WHERE t.ref_code=? AND t.category IN (${billablePlaceholders})
        GROUP BY t.employee_name, t.department, t.designation, t.year, t.month`
     )
-    .all(refCode) as {
+     .all(refCode, ...billableCategories) as {
     employee_name: string;
     department: string;
     designation: string;
@@ -454,9 +459,10 @@ export function getAllProjects(filter: PeriodFilter) {
       `SELECT ref_code, year, month, employee_name, SUM(hours) as hours
        FROM timesheet_entries
        WHERE (${yearMonthConditions}) AND ref_code IS NOT NULL AND ref_code != ''
+        AND category IN (${placeholders})
        GROUP BY ref_code, year, month, employee_name`
     )
-    .all(...yearMonthParams) as {
+     .all(...yearMonthParams, ...billableCategories) as {
     ref_code: string;
     year: number;
     month: number;

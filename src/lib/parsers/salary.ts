@@ -22,7 +22,7 @@ function clean(v: unknown): string {
   return s === "-" || s === "–" || s === "—" ? "" : s;
 }
 
-export function parseSalary(buffer: Buffer): {
+export function parseSalary(buffer: Buffer, fallbackYear?: number): {
   rows: SalaryRow[];
   errors: string[];
 } {
@@ -64,7 +64,7 @@ export function parseSalary(buffer: Buffer): {
         for (let c = range.s.c; c <= range.e.c; c++) {
           const cell = sheet[XLSX.utils.encode_cell({ r, c })];
           const raw = cell?.v?.toString() ?? "";
-          const parsed = parseMonthYear(raw);
+          const parsed = parseMonthYear(raw, fallbackYear);
           if (parsed) {
             monthCols.push({ colIdx: c, month: parsed.month, year: parsed.year });
           }
