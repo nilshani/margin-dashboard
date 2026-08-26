@@ -529,6 +529,79 @@ export function getDepartmentBreakdown(filter: PeriodFilter) {
   }[];
 }
 
+export function getDepartmentDetail(department: string, filter: PeriodFilter) {
+  const db = getDb();
+  const billableCategories = getBillableCategories();
+  const placeholders = billableCategories.map(() => "?").join(",");
+  const periods = getPeriodsForFilter(filter);
+  if (periods.length === 0) return [];
+
+  const yearMonthConditions = periods.map(() => "(year=? AND month=?)").join(" OR ");
+  const yearMonthParams = periods.flatMap((p) => [p.year, p.month]);
+
+  return db.prepare(
+    `SELECT employee_name, MAX(designation) as designation,
+            SUM(hours) as total_hours,
+            SUM(CASE WHEN category IN (${placeholders}) THEN hours ELSE 0 END) as billable_hours
+     FROM timesheet_entries
+     WHERE department=? AND (${yearMonthConditions})
+     GROUP BY employee_name ORDER BY total_hours DESC`
+  ).all(...billableCategories, department, ...yearMonthParams) as {
+    employee_name: string;
+    designation: string;
+    total_hours: number;
+    billable_hours: number;
+  }[];
+}
+
+export function getAuditRates() {
+  const db = getDb();
+  const periods = getAvailablePeriods();
+  const billableCategories = getBillableCategories();
+  const placeholders = billableCategories.map(() => "?").join(",");
+
+  return periods.map(({ year, month }) => {
+    const salary = (db.prepare(
+      "SELECT COALESCE(SUM(salary), 0) as total FROM salary_entries WHERE year=? AND month=?"
+    ).get(year, month) as { total: number }).total;
+    const hours = (db.prepare(
+      "SELECT COALESCE(SUM(hours), 0) as total FROM timesheet_entries WHERE year=? AND month=?"
+    ).get(year, month) as { total: number }).total;
+    const billableHours = (db.prepare(
+      `SELECT COALESCE(SUM(hours), 0) as total FROM timesheet_entries
+       WHERE year=? AND month=? AND category IN (${placeholders})`
+    ).get(year, month, ...billableCategories) as { total: number }).total;
+    const nonBillableCost = salary - (db.prepare(
+      `SELECT COALESCE(SUM(t.hours * s.salary / NULLIF(h.total_hours, 0)), 0) as total
+       FROM timesheet_entries t
+       JOIN salary_entries s ON s.employee_name=t.employee_name AND s.year=t.year AND s.month=t.month
+       JOIN (SELECT employee_name, year, month, SUM(hours) as total_hours FROM timesheet_entries GROUP BY employee_name, year, month) h
+         ON h.employee_name=t.employee_name AND h.year=t.year AND h.month=t.month
+       WHERE t.year=? AND t.month=? AND t.category IN (${placeholders})`
+    ).get(year, month, ...billableCategories) as { total: number }).total;
+    const overhead = getOverhead();
+    const indirectRate = getIndirectRate(year, month);
+
+    return {
+      year,
+      month,
+      salary,
+      overhead,
+      totalHours: hours,
+      billableHours,
+      nonBillableCost: Math.max(0, nonBillableCost),
+      indirectRate,
+      directRate: hours > 0 ? salary / hours : 0,
+      totalCost: hours > 0 ? salary + overhead : overhead,
+    };
+  });
+}
+
+export function getYearComparison() {
+  const years = [...new Set(getAvailablePeriods().map((p) => p.year))].sort((a, b) => a - b);
+  return years.map((year) => ({ year, ...getDashboardMetrics({ year }) }));
+}
+
 export function getEmployeeCategoryMatrix(filter: PeriodFilter) {
   const db = getDb();
   const periods = getPeriodsForFilter(filter);

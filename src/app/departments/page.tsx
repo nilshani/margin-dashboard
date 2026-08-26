@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { DataTable, Column } from "@/components/data-table";
 import { PeriodFilter } from "@/components/period-filter";
 import { ProgressBar } from "@/components/badges";
@@ -16,6 +17,7 @@ interface Row {
 interface Period { year: number; month: number; }
 
 export default function DepartmentsPage() {
+  const router = useRouter();
   const [year, setYear] = useState<number | undefined>();
   const [month, setMonth] = useState<number | undefined>();
   const [data, setData] = useState<{ rows: Row[]; periods: Period[] } | null>(null);
@@ -59,6 +61,7 @@ export default function DepartmentsPage() {
       <DataTable
         columns={columns}
         rows={data?.rows ?? []}
+        onRowClick={(row) => router.push(`/departments/${encodeURIComponent(row.department)}`)}
         emptyMessage="No timesheet data loaded yet"
         csvFilename="departments.csv"
       />
