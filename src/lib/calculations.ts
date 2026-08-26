@@ -528,3 +528,40 @@ export function getDepartmentBreakdown(filter: PeriodFilter) {
     people: number;
   }[];
 }
+
+export function getEmployeeCategoryMatrix(filter: PeriodFilter) {
+  const db = getDb();
+  const periods = getPeriodsForFilter(filter);
+  if (periods.length === 0) return { employees: [], categories: [], matrix: {} };
+
+  const yearMonthConditions = periods.map(() => "(year=? AND month=?)").join(" OR ");
+  const yearMonthParams = periods.flatMap((p) => [p.year, p.month]);
+
+  const rows = db
+    .prepare(
+      `SELECT employee_name, category, SUM(hours) as hours
+       FROM timesheet_entries
+       WHERE (${yearMonthConditions})
+       GROUP BY employee_name, category
+       ORDER BY employee_name, category`
+    )
+    .all(...yearMonthParams) as { employee_name: string; category: string; hours: number }[];
+
+  const employeeSet = new Set<string>();
+  const categorySet = new Set<string>();
+  const matrix: Record<string, Record<string, number>> = {};
+
+  for (const row of rows) {
+    employeeSet.add(row.employee_name);
+    categorySet.add(row.category);
+    if (!matrix[row.employee_name]) matrix[row.employee_name] = {};
+    matrix[row.employee_name][row.category] = row.hours;
+  }
+
+  return {
+    employees: [...employeeSet].sort(),
+    categories: [...categorySet].sort(),
+    matrix,
+  };
+}
+

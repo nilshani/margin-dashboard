@@ -12,6 +12,7 @@ const links = [
   { href: "/departments", label: "Departments", icon: "◫" },
   { href: "/upload", label: "Upload", icon: "↑" },
   { href: "/settings", label: "Settings", icon: "⚙" },
+  { href: "/matrix", label: "Matrix", icon: "⊞" },
 ];
 
 export function Nav() {
