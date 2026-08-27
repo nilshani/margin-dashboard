@@ -11,7 +11,7 @@ const links = [
   { href: "/categories", label: "Categories", icon: "◉" },
   { href: "/departments", label: "Departments", icon: "◫" },
   { href: "/upload", label: "Upload", icon: "↑" },
-  // { href: "/settings", label: "Settings", icon: "⚙" },
+  { href: "/settings", label: "Settings", icon: "⚙" },
   { href: "/matrix", label: "Matrix", icon: "⊞" },
   { href: "/comparison", label: "Year Comparison", icon: "⇄" },
   { href: "/audit", label: "Cost Audit", icon: "⌁" },
